@@ -114,20 +114,29 @@ class SalesWizardMainController(QWidget):
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS production_orders (
                     id INT AUTO_INCREMENT PRIMARY KEY,
-                    client_fio VARCHAR(100) NOT NULL,
-                    client_phone VARCHAR(50) NOT NULL,
-                    lead_source VARCHAR(50),
-                    category VARCHAR(30),
-                    product_line VARCHAR(50),
-                    diameter VARCHAR(10),
-                    shape_type VARCHAR(30),
-                    material VARCHAR(30),
+                    status VARCHAR(50) DEFAULT 'calculation',
+                    business_direction VARCHAR(100) DEFAULT 'baths',
+                    client_fio VARCHAR(255),
+                    client_phone VARCHAR(50),
+                    lead_source VARCHAR(100),
+                    category VARCHAR(100),
+                    product_line VARCHAR(100),
+                    material VARCHAR(50),
+                    diameter VARCHAR(20),
+                    shape_type VARCHAR(50),
                     base_length INT,
-                    torce_modification VARCHAR(30),
-                    color_roof VARCHAR(50),
-                    color_facade VARCHAR(100),
-                    color_borders VARCHAR(100),
-                    status VARCHAR(30) DEFAULT 'calculation'
+                    torce_modification VARCHAR(100),
+                    -- Поля цветов, из-за которых сейчас возникает ошибка:
+                    color_roof VARCHAR(100) DEFAULT '',
+                    color_facade VARCHAR(100) DEFAULT '',
+                    color_borders VARCHAR(100) DEFAULT '',
+                    -- Сразу закладываем поля под наши новые идеи (ТЗ):
+                    contract_number VARCHAR(100) DEFAULT NULL,
+                    delivery_date DATE DEFAULT NULL,
+                    production_progress INT DEFAULT 0,
+                    supply_progress INT DEFAULT 0,
+                    approved_by_master VARCHAR(255) DEFAULT NULL,
+                    total_price DECIMAL(10, 2) DEFAULT 0.00
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """)
 

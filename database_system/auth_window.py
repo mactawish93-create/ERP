@@ -80,6 +80,15 @@ class LoginDialog(QDialog):
         result = verify_user_credentials(login, password)
 
         if result["success"]:
+            # 🔥 ПЕРЕХВАТ: Если флаг смены пароля равен True
+            if result.get("require_change"):
+                # Открываем созданное нами диалоговое окно принудительной смены
+                change_dialog = PasswordChangeDialog(login, is_dark_theme=self.is_dark_theme)
+                if change_dialog.exec() != QDialog.DialogCode.Accepted:
+                    self.lbl_error.setText("Необходимо сменить временный пароль!")
+                    return # Если пользователь закрыл окно смены, не пускаем его в ERP
+
+            # Если всё хорошо или пароль успешно сменен, создаем сессию и пускаем дальше
             self.user_session = result # Запоминаем паспорт сессии (ФИО, роль, ранг)
             self.accept() # Закрываем диалог с успехом, передаем управление в main_erp.py
         else:
@@ -119,3 +128,90 @@ class LoginDialog(QDialog):
             """)
             self.lbl_title.setStyleSheet("color: #0056B3;")
             self.lbl_subtitle.setStyleSheet("color: #6C757D;")
+
+class PasswordChangeDialog(QDialog):
+    """Диалоговое окно принудительной смены временного пароля при первом входе."""
+    def __init__(self, username, is_dark_theme=True):
+        super().__init__()
+        self.username = username
+        self.is_dark_theme = is_dark_theme
+        
+        self.setWindowTitle("Безопасность — Смена пароля")
+        self.setFixedSize(340, 260)
+        self.setWindowFlags(Qt.WindowType.WindowCloseButtonHint)
+        self._init_ui()
+
+    def _init_ui(self):
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(20, 20, 20, 20)
+        lay.setSpacing(12)
+
+        lbl = QLabel("Вам необходимо сменить\nвременный пароль!")
+        lbl.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(lbl)
+
+        self.txt1 = QLineEdit()
+        self.txt1.setPlaceholderText("Придумайте новый пароль...")
+        self.txt1.setEchoMode(QLineEdit.EchoMode.Password)
+        self.txt1.setFixedHeight(34)
+        
+        self.txt2 = QLineEdit()
+        self.txt2.setPlaceholderText("Повторите новый пароль...")
+        self.txt2.setEchoMode(QLineEdit.EchoMode.Password)
+        self.txt2.setFixedHeight(34)
+        
+        self.lbl_err = QLabel("")
+        self.lbl_err.setStyleSheet("color: #FF4D4D;")
+        self.lbl_err.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.btn = QPushButton("СОХРАНИТЬ И СБРОСИТЬ ФЛАГ")
+        self.btn.setFixedHeight(36)
+        self.btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self.btn.clicked.connect(self._change_password)
+
+        lay.addWidget(self.txt1)
+        lay.addWidget(self.txt2)
+        lay.addWidget(self.lbl_err)
+        lay.addWidget(self.btn)
+        
+        # Стилизация под тему родительского окна
+        if self.is_dark_theme:
+            self.setStyleSheet("QDialog { background-color: #111114; } QLabel { color: #E0E0E6; } QLineEdit { background-color: #1A1A1E; color: #white; border: 1px solid #353540; border-radius: 4px; padding-left: 10px; } QPushButton { background-color: #FF9F43; color: white; border-radius: 4px; }")
+        else:
+            self.setStyleSheet("QDialog { background-color: #FFFFFF; } QLabel { color: #212529; } QLineEdit { background-color: #F8F9FA; color: #212529; border: 1px solid #CED4DA; border-radius: 4px; padding-left: 10px; } QPushButton { background-color: #0056B3; color: white; border-radius: 4px; }")
+
+    def _change_password(self):
+        p1, p2 = self.txt1.text(), self.txt2.text()
+        if not p1 or not p2:
+            self.lbl_err.setText("Заполните оба поля!")
+            return
+        if p1 != p2:
+            self.lbl_err.setText("Пароли не совпадают!")
+            return
+        if len(p1) < 4:
+            self.lbl_err.setText("Пароль слишком короткий!")
+            return
+
+        import os, hashlib, pymysql
+        from config import DB_CONFIG
+        
+        # Генерируем новую надежную случайную соль (16 символов)
+        new_salt = os.urandom(8).hex()
+        new_hash = hashlib.sha256((new_salt + p1).encode('utf-8')).hexdigest()
+
+        try:
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            # Обновляем хэш, соль и сбрасываем флаг принудительной смены на 0
+            cursor.execute("""
+                UPDATE users 
+                SET password_hash = %s, salt = %s, require_password_change = 0 
+                WHERE login = %s
+            """, (new_hash, new_salt, self.username))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            self.accept()
+        except pymysql.MySQLError as e:
+            self.lbl_err.setText(f"Ошибка БД: {e}")

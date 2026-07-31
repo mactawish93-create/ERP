@@ -5,6 +5,7 @@ from PyQt6.QtGui import QFont
 from config import TABS_SPECIFICATION
 from modules.administration.admin_panel import AdminPanelWidget
 from modules.price_manager.price_panel import PriceManagerWidget
+from modules.orders_manager.orders_panel import OrdersManagerWidget
 import theme_manager
 
 # 🔥 ВАЖНЕЙШИЙ ИМПОРТ: Подключаем живой конвейер шагов проектирования
@@ -18,7 +19,8 @@ class BabochkiErpCore(QMainWindow):
         self.is_dark_theme = True 
 
         self.setWindowTitle("БаБочки ERP — Автоматизация производства")
-        self.setFixedSize(1250, 720)
+        self.setMinimumSize(1250, 720) # Минимальный размер, меньше которого окно сжать нельзя
+        self.resize(1250, 800)         # Комфортный стартовый размер при открытии
 
         self._init_ui()
         self._apply_role_access_matrix()
@@ -113,6 +115,9 @@ class BabochkiErpCore(QMainWindow):
             # 🔥 ИНТЕГРАЦИЯ: Для первой вкладки инициализируем живую воронку
             if i == 0:
                 canvas = SalesWizardMainController()
+            # 🔥 ИНТЕГРАЦИЯ: Привязываем живую Базу заказов на 2-ю вкладку сайдбара (индекс 1)
+            elif i == 1:
+                canvas = OrdersManagerWidget(user_session=self.user_session)
             # 🔥 ИНТЕГРАЦИЯ: Привязываем живой редактор прайсов на 7-ю вкладку сайдбара (индекс 6)
             elif i == 6:
                 canvas = PriceManagerWidget()
