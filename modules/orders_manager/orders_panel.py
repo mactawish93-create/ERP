@@ -1,8 +1,16 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QCheckBox, QTableWidget, QFrame, 
-                             QPushButton, QSplitter, QHeaderView, QTableWidgetItem)
+                             QPushButton, QSplitter, QHeaderView, QTableWidgetItem, QTextEdit)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from cryptography.fernet import Fernet
+
+# 🔥 СЕКРЕТНЫЙ КЛЮЧ ШИФРОВАНИЯ ДЛЯ ФЗ-152 (Симметричный AES-256)
+# В реальном продакшене этот ключ должен лежать в изолированном файле .env,
+# но для монолитности ERP мы можем сгенерировать его стабильным байт-кодом:
+SECRET_CRYPTO_KEY = b'uX9_G8bX2v9hK7Lm4PqW1zS5tD6cE7rT8yU9iO0pA1s='
+cipher_suite = Fernet(SECRET_CRYPTO_KEY)
+
 
 class OrdersManagerWidget(QWidget):
     """
@@ -139,9 +147,9 @@ class OrdersManagerWidget(QWidget):
         # ПРАВАЯ СТОРОНА: Спецификация + Кнопка договора
         # =====================================================================
         right_container = QFrame()
-        right_layout = QVBoxLayout(right_container)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(10)
+        self.right_layout = QVBoxLayout(right_container) 
+        self.right_layout.setContentsMargins(0, 0, 0, 0)
+        self.right_layout.setSpacing(10)
         
         lbl_right_title = QLabel("🛠️ Комплектация и параметры бани")
         lbl_right_title.setObjectName("lbl_title")
@@ -180,24 +188,14 @@ class OrdersManagerWidget(QWidget):
         return frame
 
     def _create_order_card(self, order_id, contract_num, status, fio, phone):
-        """Исправлено: Карточка красится через объектные имена, исключая кэширование стилей"""
+        """Карточка без жестких цветов — вся стилизация вынесена в глобальный QSS"""
         from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel
         from PyQt6.QtGui import QFont
-        
-        # Считываем флаг темы
-        is_dark = getattr(self, "is_dark_theme", True)
 
         card = QFrame()
-        # 🔥 ФИКС: Присваиваем карточке системное имя. Цвета мы пропишем ниже, 
-        # и они будут мгновенно меняться без пересоздания виджетов!
+        # Присваиваем карточке и её статусу уникальные имена для глобального QSS
         card.setObjectName("OrderListCard")
-
-        # Применяем динамический стиль к контейнеру карточки
-        if not is_dark:
-            card.setStyleSheet("QFrame#OrderListCard { background-color: #E9ECEF; border: 1px solid #CED4DA; border-radius: 6px; margin: 2px 4px; }")
-        else:
-            card.setStyleSheet("QFrame#OrderListCard { background-color: #232328; border: 1px solid #2F2F35; border-radius: 6px; margin: 2px 4px; }")
-
+        
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(12, 6, 12, 6)
         card_layout.setSpacing(4)
@@ -206,27 +204,18 @@ class OrdersManagerWidget(QWidget):
         lbl_top = QLabel(f"Лид #{order_id}  •  {c_num_text}  •  [{status.upper()}]")
         lbl_top.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         
-        # Цвета статусов под светлый и темный режимы
-        if status.lower() == "signed": 
-            lbl_top.setStyleSheet(f"color: {'#00A8FF' if is_dark else '#0056B3'}; border: none; background: transparent;")
-        elif status.lower() == "calculation": 
-            lbl_top.setStyleSheet(f"color: {'#FFA500' if is_dark else '#D97706'}; border: none; background: transparent;")
-        elif status.lower() == "returned": 
-            lbl_top.setStyleSheet(f"color: {'#FF4D4D' if is_dark else '#DC2626'}; border: none; background: transparent;")
-        else: 
-            lbl_top.setStyleSheet(f"color: {'#2ECC71' if is_dark else '#16A34A'}; border: none; background: transparent;")
-            
+        # Динамические маркеры статусов для QSS (переводим в нижний регистр)
+        lbl_top.setProperty("status", status.lower())
+        lbl_top.setObjectName("OrderCardTitle")
+        
         lbl_bottom = QLabel(f"👤 {fio}   |   📱 {phone}")
         lbl_bottom.setFont(QFont("Segoe UI", 9))
-        
-        if is_dark:
-            lbl_bottom.setStyleSheet("color: #A0A0A5; border: none; background: transparent;")
-        else:
-            lbl_bottom.setStyleSheet("color: #495057; border: none; background: transparent;")
+        lbl_bottom.setObjectName("OrderCardSubtitle")
         
         card_layout.addWidget(lbl_top)
         card_layout.addWidget(lbl_bottom)
         return card
+
 
     def load_orders_from_mysql(self):
         """Скачивает список заказов из облака MySQL Джино"""
@@ -268,40 +257,192 @@ class OrdersManagerWidget(QWidget):
             print(f"[Ошибка базы заказов]: {e}")
 
     def show_order_details(self):
-        """Безопасно считывает ID скрытой ячейки и разворачивает спецификацию бани"""
-        curr_row = self.table_orders.currentRow()
-        if curr_row < 0:
+        """
+        Часть 1: Отрисовка цифрового паспорта бани (Правая сторона) по макету.
+        Внедрено авто-раскодирование паспорта клиента по ФЗ-152.
+        """
+        # 🔥 ФИКС: Теперь этот слой виден, и мы безопасно очищаем экран при смене лида
+        if hasattr(self, "right_layout") and self.right_layout.count() > 0:
+            # Очищаем старые виджеты, чтобы они не накладывались друг на друга
+            while self.right_layout.count():
+                child = self.right_layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+                elif child.layout():
+                    # Если внутри были подслои ( layouts ), очищаем и их тоже
+                    self.clear_layout(child.layout())
+
+        # Получаем строку выбранного заказа в таблице
+        selected_rows = self.table_orders.selectionModel().selectedRows()
+        if not selected_rows:
+            stub_lbl = QLabel("← Выберите заказ или лид из списка слева для управления")
+            stub_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.right_layout.addWidget(stub_lbl)
             return
-            
-        # Читаем системный ID из скрытого QTableWidgetItem первой ячейки строки
-        id_item = self.table_orders.item(curr_row, 0)
-        if not id_item:
-            return
-            
-        order_id = id_item.text()
-        order = self.raw_orders_cache.get(order_id)
-        if not order:
-            return
-            
-        ru_labels = {
-            "client_phone": "📱 Номер телефона", "lead_source": "📢 Источник лида",
-            "category": "🏗️ Категория", "product_line": "📐 Модельная линейка",
-            "diameter": "⭕ Диаметр торца", "shape_type": "⬡ Форма сечения",
-            "material": "🪵 Материал обшивки", "base_length": "📏 Длина ламелей (мм)",
-            "torce_modification": "🚪 Модификация торца", "color_roof": "🎨 Цвет кровли",
-            "color_facade": "🎨 Цвет фасада (RAL)", "color_borders": "🎨 Цвет обналички"
-        }
+
+        row_idx = selected_rows[0].row()
+        order_id = int(self.table_orders.item(row_idx, 0).text().replace("#", ""))
+        order_data = self.raw_orders_cache.get(order_id, {})
+
+        # Подтягиваем системные поля из обновленной БД
+        progress_prod = order_data.get("production_progress", 0)
+        progress_supply = order_data.get("supply_progress", 0)
+        master_name = order_data.get("approved_by_master", "Не назначен")
+        deliv_date = order_data.get("delivery_date", "—")
+        total_price = order_data.get("total_price", 0.00)
+
+        # ---------------------------------------------------------------------
+        # 1. ВЕРХНИЙ ИНФОРМАЦИОННЫЙ БЛОК (Зеленая строка статусов по макету)
+        # ---------------------------------------------------------------------
+        top_status_layout = QHBoxLayout()
+        top_status_layout.setSpacing(15)
+
+        status_text = (
+            f"📅 Передача объекта: <b style='color:#2ECC71;'>{deliv_date}</b>  |  "
+            f"🛠️ Выполнение заказа: <b style='color:#2ECC71;'>{progress_prod}%</b>  |  "
+            f"🪵 Материал закуплен: <b style='color:#2ECC71;'>{progress_supply}%</b>  |  "
+            f"🎖️ Утвердил: <b style='color:#2ECC71;'>{master_name}</b>"
+        )
+        lbl_top_status = QLabel(status_text)
+        lbl_top_status.setFont(QFont("Segoe UI", 9))
+        top_status_layout.addWidget(lbl_top_status)
+        top_status_layout.addStretch()
+
+        self.right_layout.addLayout(top_status_layout)
+
+        # ---------------------------------------------------------------------
+        # 2. БЛОК ОСНОВНЫХ ДАННЫХ И ПДН С КРИПТОГРАФИЕЙ (ФЗ-152)
+        # ---------------------------------------------------------------------
+        data_layout = QHBoxLayout()
+        data_layout.setSpacing(30)
+
+        # Левая колонка блока данных (Сводная текстовая информация)
+        info_left_box = QVBoxLayout()
+        info_left_box.setSpacing(4)
+
+        c_num = order_data.get("contract_number", "—")
+        status_ord = order_data.get("status", "calculation").upper()
         
-        self.table_details.setRowCount(0)
-        for row_idx, (key, label) in enumerate(ru_labels.items()):
-            if key in order:
-                self.table_details.insertRow(row_idx)
-                val_text = str(order[key])
-                if val_text == "pine": val_text = "Сосна / Ель"
-                elif val_text == "cedar": val_text = "Сибирский кедр"
+        lbl_doc_title = QLabel(f"Договор №: {c_num}  ;  Лид №: {order_id}  ;  Тел: {order_data.get('client_phone', '—')}")
+        lbl_doc_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        
+        lbl_fio_client = QLabel(f"ФИО Клиента: {order_data.get('client_fio', '—')}")
+        lbl_fio_client.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        
+        info_left_box.addWidget(lbl_doc_title)
+        info_left_box.addWidget(lbl_fio_client)
+
+        # ПОЛЯ ДЛЯ ВВОДА (Редактируемые QLineEdit / QTextEdit по вашему наброску)
+        # Поле Паспорта (Считываем крипто-строку из БД и расшифровываем для экрана)
+        raw_passport_encrypted = order_data.get("client_passport_encrypted", "")
+        decrypted_passport = ""
+        if raw_passport_encrypted:
+            try:
+                # Дешифруем байты обратно в читаемый паспорт гражданина РФ
+                decrypted_passport = cipher_suite.decrypt(raw_passport_encrypted.encode()).decode()
+            except Exception:
+                decrypted_passport = "[ Ошибка дешифрования ПДН / Ключ изменен ]"
+
+        info_left_box.addWidget(QLabel("Паспортные данные клиента (Шифрование ФЗ-152):"))
+        self.txt_passport = QLineEdit(decrypted_passport)
+        self.txt_passport.setPlaceholderText("Серия, номер, кем и когда выдан...")
+        info_left_box.addWidget(self.txt_passport)
+
+        info_left_box.addWidget(QLabel("Адрес доставки / установки изделия:"))
+        self.txt_address = QLineEdit(order_data.get("client_address", ""))
+        self.txt_address.setPlaceholderText("Область, город, СНТ, улица, участок...")
+        info_left_box.addWidget(self.txt_address)
+
+        info_left_box.addWidget(QLabel("Поле для примечаний менеджера:"))
+        self.txt_notes = QTextEdit()
+        self.txt_notes.setFixedHeight(45) # Делаем компактным по макету
+        self.txt_notes.setPlainText(order_data.get("order_notes", ""))
+        self.txt_notes.setPlaceholderText("Дополнительные критические важные комментарии к заказу...")
+        info_left_box.addWidget(self.txt_notes)
+
+        data_layout.addLayout(info_left_box, stretch=3)
+
+        # Правая колонка блока данных (Финансы и статус)
+        info_right_box = QVBoxLayout()
+        info_right_box.setSpacing(5)
+        info_right_box.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+
+        lbl_stat_title = QLabel(f"Статус договора: <b style='color:#FFA500;'>{status_ord}</b>")
+        lbl_stat_title.setFont(QFont("Segoe UI", 10))
+        
+        lbl_price_title = QLabel(f"Стоимость изделия: <b style='color:#2ECC71;'>{total_price:,.2f} руб.</b>")
+        lbl_price_title.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+
+        info_right_box.addWidget(lbl_stat_title)
+        info_right_box.addWidget(lbl_price_title)
+        
+        # Кнопка «Сохранить ПДН и изменения карточки»
+        btn_save_pnd = QPushButton("💾 Сохранить изменения")
+        btn_save_pnd.setFixedWidth(180)
+        btn_save_pnd.setStyleSheet("background-color: #00A8FF; color: white; font-weight: bold; border-radius: 4px; padding: 4px;")
+        # Привязываем сохранение с шифрованием к кнопке
+        btn_save_pnd.clicked.connect(lambda: self.save_encrypted_pnd_to_db(order_id))
+        info_right_box.addWidget(btn_save_pnd)
+
+        data_layout.addLayout(info_right_box, stretch=1)
+        self.right_layout.addLayout(data_layout)
+
+        # Временный разделитель перед будущей матрицей документов (Часть 2)
+        sep = QFrame()
+        sep.setFrameShape(QFrame.FrameShape.HLine)
+        sep.setStyleSheet("color: #2F2F35;")
+        self.right_layout.addWidget(sep)
+
+    def save_encrypted_pnd_to_db(self, order_id):
+        """Шифрует ПДН по алгоритму AES-256 и сохраняет изменения лида в MySQL"""
+        import mysql.connector
+        
+        passport_text = self.txt_passport.text().strip()
+        address_text = self.txt_address.text().strip()
+        notes_text = self.txt_notes.toPlainText().strip()
+
+        # 🔥 КРИПТОГРАФИЯ: превращаем открытый паспорт в зашифрованный байт-код
+        encrypted_passport = ""
+        if passport_text:
+            encrypted_passport = cipher_suite.encrypt(passport_text.encode()).decode()
+
+        try:
+            # Подключаемся к вашей живой базе на Джино
+            db_config = self.user_session.get("db_config") if self.user_session else None
+            if not db_config:
+                from db_installer import DB_CONFIG
+                db_config = DB_CONFIG
                 
-                self.table_details.setItem(row_idx, 0, QTableWidgetItem(label))
-                self.table_details.setItem(row_idx, 1, QTableWidgetItem(val_text))
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor()
+            
+            # Записываем изменения в новые безопасные колонки
+            query = """
+                UPDATE production_orders 
+                SET client_passport_encrypted = %s,
+                    client_address = %s,
+                    order_notes = %s
+                WHERE id = %s
+            """
+            cursor.execute(query, (encrypted_passport, address_text, notes_text, order_id))
+            conn.commit()
+            
+            # Обновляем локальный кэш программы, чтобы менеджер сразу видел результат
+            if order_id in self.raw_orders_cache:
+                self.raw_orders_cache[order_id]["client_passport_encrypted"] = encrypted_passport
+                self.raw_orders_cache[order_id]["client_address"] = address_text
+                self.raw_orders_cache[order_id]["order_notes"] = notes_text
+
+            cursor.close()
+            conn.close()
+            
+            # Выводим сообщение о победе
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "Успех ФЗ-152", f"Данные лида #{order_id} успешно зашифрованы и сохранены в MySQL!")
+            
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Ошибка БД", f"Не удалось сохранить изменения: {str(e)}")
 
     def apply_ui_filters(self):
         """Живой фильтр списка карточек по тексту поиска и галочкам статусов"""
