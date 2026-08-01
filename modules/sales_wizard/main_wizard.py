@@ -115,10 +115,14 @@ class SalesWizardMainController(QWidget):
                 CREATE TABLE IF NOT EXISTS production_orders (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     status VARCHAR(50) DEFAULT 'calculation',
-                    business_direction VARCHAR(100) DEFAULT 'baths',
+                    business_direction VARCHAR(100) DEFAULT 'baths', 
+    
+                    -- Контакты
                     client_fio VARCHAR(255),
                     client_phone VARCHAR(50),
                     lead_source VARCHAR(100),
+                    
+                    -- Базовая геометрия (Шаг 3)
                     category VARCHAR(100),
                     product_line VARCHAR(100),
                     material VARCHAR(50),
@@ -126,11 +130,25 @@ class SalesWizardMainController(QWidget):
                     shape_type VARCHAR(50),
                     base_length INT,
                     torce_modification VARCHAR(100),
-                    -- Поля цветов, из-за которых сейчас возникает ошибка:
+                    
+                    -- Внутренние размеры комнат (Шаг 3)
+                    room_sauna INT DEFAULT 0,
+                    room_wash INT DEFAULT 0,
+                    room_rest INT DEFAULT 0,
+                    
+                    -- Колеровка RAL (Шаг 3)
                     color_roof VARCHAR(100) DEFAULT '',
                     color_facade VARCHAR(100) DEFAULT '',
                     color_borders VARCHAR(100) DEFAULT '',
-                    -- Сразу закладываем поля под наши новые идеи (ТЗ):
+                    color_ends VARCHAR(100) DEFAULT '', -- 🔥 ДОБАВИЛИ ТОЧНЫЙ ЦВЕТ ТОРЦОВ
+                    
+                    -- Новые пункты производства Да/Нет (Шаг 3)
+                    assembly_on_site TINYINT DEFAULT 0,  -- Сборка на участке (0-Нет, 1-Да)
+                    door_facade TINYINT DEFAULT 0,       -- Дверь с фасадной стороны
+                    stove_next_room TINYINT DEFAULT 0,   -- Топка в смежное помещение
+                    stove_street TINYINT DEFAULT 0,      -- Топка на улицу
+                    
+                    -- Системные поля под ТЗ
                     contract_number VARCHAR(100) DEFAULT NULL,
                     delivery_date DATE DEFAULT NULL,
                     production_progress INT DEFAULT 0,

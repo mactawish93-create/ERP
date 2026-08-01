@@ -61,6 +61,16 @@ def get_dark_theme_qss() -> str:
         }
         QPushButton:hover { background-color: #282830; border-color: #00A8FF; color: #FFF; }
         QPushButton:checked { background-color: #00A8FF; border-color: #00A8FF; color: #FFF; font-weight: bold; }
+        /* --- Стили карточек заказов для ТЕМНОЙ темы --- */
+        QFrame#OrderListCard {
+            background-color: #232328;
+            border: 1px solid #2F2F35;
+            border-radius: 6px;
+            margin: 2px 4px;
+        }
+        QLabel#OrderCardSubtitle { color: #A0A0A5; background: transparent; }
+        QLabel#OrderCardTitle { color: #2ECC71; background: transparent; }
+        /* Добавьте специфичные цвета для статусов по аналогии */
     """
 
 def get_light_theme_qss() -> str:
@@ -120,4 +130,14 @@ def get_light_theme_qss() -> str:
         }
         QPushButton:hover { background-color: #E9ECEF; border-color: #0056B3; color: #0056B3; }
         QPushButton:checked { background-color: #0056B3; border-color: #0056B3; color: #FFF; font-weight: bold; }
+        /* --- Стили карточек заказов для СВЕТЛОЙ темы --- */
+        QFrame#OrderListCard {
+            background-color: #E9ECEF;
+            border: 1px solid #CED4DA;
+            border-radius: 6px;
+            margin: 2px 4px;
+        }
+        QLabel#OrderCardSubtitle { color: #495057; background: transparent; }
+        QLabel#OrderCardTitle { color: #16A34A; background: transparent; }
+        /* Добавьте специфичные цвета для статусов по аналогии */
     """

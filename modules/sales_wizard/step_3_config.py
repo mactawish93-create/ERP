@@ -147,18 +147,15 @@ class Step3ConfigWidget(QWidget):
         self.widgets["shape_type"].setItemText(1, "Квадро контур (+7%)")
 
         self.widgets["base_length"] = QComboBox()
-        self.widgets["base_length"].addItems(["2000", "3000", "3200", "4000", "4200", "4500", "4700", "5000", "5500", "5700", "6000"])
+        self.widgets["base_length"].addItems(["2000", "3000", "3500", "4000", "4500", "5000", "5000", "6000"])
         self.widgets["base_length"].setItemText(0, "Баня 2000 мм («Двоечка»)")
         self.widgets["base_length"].setItemText(1, "Баня 3000 мм («Троечка»)")
-        self.widgets["base_length"].setItemText(2, "Баня 3200 мм («Троечка +» с козырьком/крыльцом)")
-        self.widgets["base_length"].setItemText(3, "Баня 4000 мм («Четверочка»)")
-        self.widgets["base_length"].setItemText(4, "Баня 4200 мм («Четверочка +» с козырьком)")
-        self.widgets["base_length"].setItemText(5, "Баня 4500 мм («Четверочка +» с крыльцом / без козырька)")
-        self.widgets["base_length"].setItemText(6, "Баня 4700 мм («Четверочка +» с крыльцом и козырьком)")
-        self.widgets["base_length"].setItemText(7, "Баня 5000 мм («Пятерочка»)")
-        self.widgets["base_length"].setItemText(8, "Баня 5500 мм («Пятерочка +» с козырьком)")
-        self.widgets["base_length"].setItemText(9, "Баня 5700 мм («Пятерочка +» с крыльцом / козырьком)")
-        self.widgets["base_length"].setItemText(10, "Баня 6000 мм («Шестерочка»)")
+        self.widgets["base_length"].setItemText(2, "Баня 3500 мм («Троечка+»)")
+        self.widgets["base_length"].setItemText(3, "Баня 4000 мм («Четверочка» 2 помещения)")
+        self.widgets["base_length"].setItemText(4, "Баня 4500 мм («Четверочка+» 3 помещения)")
+        self.widgets["base_length"].setItemText(5, "Баня 5000 мм («Пятерочка» 2 помещения)")
+        self.widgets["base_length"].setItemText(6, "Баня 5000 мм («Пятерочка+» 3 помещения)")
+        self.widgets["base_length"].setItemText(7, "Баня 6000 мм («Шестерочка»)")
 
         self.widgets["torce_modification"] = QComboBox()
         self.widgets["torce_modification"].addItems(["base", "canopy", "porch"])
@@ -233,82 +230,79 @@ class Step3ConfigWidget(QWidget):
         
         # Запускаем первичное обновление графики и линий при старте окна
         self._update_blueprint_graphics()
+
     def _auto_adjust_rooms(self, index):
-        """Автоматически подставляет базовые размеры комнат при выборе длины"""
-        if index == 0: total_len = 2000
-        elif index == 1: total_len = 3000
-        elif index == 2: total_len = 3200
-        elif index == 3: total_len = 4000
-        elif index == 4: total_len = 4200
-        elif index == 5: total_len = 4500
-        elif index == 6: total_len = 4700
-        elif index == 7: total_len = 5000
-        elif index == 8: total_len = 5500
-        elif index == 9: total_len = 5700
-        else: total_len = 6000
-        
-        if total_len == 2000:
-            self.widgets["room_sauna"].setText("2000")
+        """Автоматически подставляет базовые размеры комнат строго по ТЗ со скриншота"""
+        if index == 0:    # Баня 2000 мм («Двоечка»)
+            self.widgets["room_sauna"].setText("1810")
             self.widgets["room_wash"].setText("0")
             self.widgets["room_rest"].setText("0")
-        elif total_len == 3000:
-            self.widgets["room_sauna"].setText("2000")
-            self.widgets["room_wash"].setText("1000")
-            self.widgets["room_rest"].setText("0")
-        elif total_len == 3200:
+        elif index == 1:  # Баня 3000 мм («Троечка»)
+            self.widgets["room_sauna"].setText("1800")
+            self.widgets["room_wash"].setText("0")
+            self.widgets["room_rest"].setText("965")
+        elif index == 2:  # Баня 3500 мм («Троечка+»)
             self.widgets["room_sauna"].setText("2000")
             self.widgets["room_wash"].setText("0")
-            self.widgets["room_rest"].setText("1200")
-        elif total_len == 4000:
+            self.widgets["room_rest"].setText("1265")
+        elif index == 3:  # Баня 4000 мм («Четверочка» 2 помещения)
             self.widgets["room_sauna"].setText("2000")
             self.widgets["room_wash"].setText("0")
-            self.widgets["room_rest"].setText("2000")
-        elif total_len == 4200:
+            self.widgets["room_rest"].setText("1765")
+        elif index == 4:  # Баня 4500 мм («Четверочка+» 3 помещения)
             self.widgets["room_sauna"].setText("2000")
+            self.widgets["room_wash"].setText("1220")
+            self.widgets["room_rest"].setText("1300")
+        elif index == 5:  # Баня 5000 мм («Пятерочка» 2 помещения)
+            self.widgets["room_sauna"].setText("2300")
             self.widgets["room_wash"].setText("0")
-            self.widgets["room_rest"].setText("2200")
-        elif total_len == 4500:
-            self.widgets["room_sauna"].setText("1700")
-            self.widgets["room_wash"].setText("1100")
-            self.widgets["room_rest"].setText("1700")
-        elif total_len == 4700:
+            self.widgets["room_rest"].setText("2465")
+        elif index == 6:  # Баня 5000 мм («Пятерочка+» 3 помещения)
             self.widgets["room_sauna"].setText("2000")
-            self.widgets["room_wash"].setText("0")
-            self.widgets["room_rest"].setText("2700")
-        elif total_len == 5000:
-            self.widgets["room_sauna"].setText("2000")
-            self.widgets["room_wash"].setText("1000")
-            self.widgets["room_rest"].setText("2000")
-        elif total_len == 5500:
-            self.widgets["room_sauna"].setText("2000")
-            self.widgets["room_wash"].setText("1000")
-            self.widgets["room_rest"].setText("2500")
-        elif total_len == 5700:
-            self.widgets["room_sauna"].setText("2000")
-            self.widgets["room_wash"].setText("1000")
-            self.widgets["room_rest"].setText("2700")
-        else:
-            self.widgets["room_sauna"].setText("2000")
-            self.widgets["room_wash"].setText("1500")
-            self.widgets["room_rest"].setText("2500")
+            self.widgets["room_wash"].setText("1200")
+            self.widgets["room_rest"].setText("1520")
+        else:             # Баня 6000 мм («Шестерочка»)
+            self.widgets["room_sauna"].setText("2200")
+            self.widgets["room_wash"].setText("1200")
+            self.widgets["room_rest"].setText("2320")
 
         self._update_blueprint_graphics()
 
     def _update_blueprint_graphics(self):
-        """Меняет 3D-рендеры и перестраивает размерную линию"""
+        """
+        Обновленный графический движок: подбирает 3D-рендеры по точной 
+        зависимости со скриншота и лочит Мойку/КО под количество комнат.
+        """
+        import os
+        from PyQt6.QtGui import QPixmap
+
+        # 1. Считываем форму (round / quadro)
         shape_idx = self.widgets["shape_type"].currentIndex()
         shape_prefix = "quadro" if shape_idx == 1 else "round"
+        
+        # 2. Получаем индекс выбранной длины из комбобокса (всего 8 вариантов)
         idx = self.widgets["base_length"].currentIndex()
         
-        if idx == 0: len_file = "len_2000.png"
-        elif idx == 1 or idx == 2: len_file = "len_3000.png"
-        elif idx >= 3 and idx <= 6: len_file = "len_4000.png"
-        elif idx == 7: len_file = "len_5000.png"
-        else: len_file = "len_6000.png"
+        # Точный маппинг имён файлов строго по вашему ТЗ со скриншота
+        if idx == 0:
+            len_file = "len_2000.png"       # «Двоечка»
+        elif idx == 1 or idx == 2:          # «Троечка» и «Троечка+»
+            len_file = "len_3000.png"       
+        elif idx == 3:
+            len_file = "len_4000.png"       # «Четверочка» 2 помещения
+        elif idx == 4:
+            len_file = "len_6000.png"       # «Четверочка+» 3 помещения (маппинг на 6000)
+        elif idx == 5:
+            len_file = "len_5000.png"       # «Пятерочка» 2 помещения
+        elif idx == 6:
+            len_file = "len_6000.png"       # «Пятерочка+» 3 помещения (маппинг на 6000)
+        else:
+            len_file = "len_6000.png"       # «Шестерочка»
 
         target_file = f"{shape_prefix}_{len_file}"
         image_path = os.path.join("assets", "images", target_file)
         
+        # Защитный автоподбор
         if not os.path.exists(image_path) and shape_prefix == "quadro":
             target_file = f"round_{len_file}"
             image_path = os.path.join("assets", "images", target_file)
@@ -322,20 +316,31 @@ class Step3ConfigWidget(QWidget):
             self.lbl_blueprint.clear()
             self.lbl_blueprint.setText(f"📸 Рендер: [ {target_file} ]")
 
+        # 3. Читаем текущий ввод размеров комнат для стрелочек ГОСТ
         p_len = self.widgets["room_sauna"].text()
         m_len = self.widgets["room_wash"].text()
         k_len = self.widgets["room_rest"].text()
         
-        lens = ["2000", "3000", "3200", "4000", "4200", "4500", "4700", "5000", "5500", "5700", "6000"]
-        total_len = int(lens[idx])
-        
-        if total_len == 2000:
-            self.lbl_size_line.setText(f"├─── Парилка: {p_len} мм ───┤")
-        elif m_len == "0" or m_len == "" or m_len == "0000":
+        # 🔥 ЖЕСТКОЕ УПРАВЛЕНИЕ БЛОКИРОВКОЙ ПОЛЕЙ И СТРЕЛОЧКАМИ ПО КОЛИЧЕСТВУ КОМНАТ
+        if idx == 0:
+            # Одно помещение («Двоечка»): полностью блокируем Мойку и КО
+            self.widgets["room_wash"].setText("0")
+            self.widgets["room_rest"].setText("0")
+            self.widgets["room_wash"].setEnabled(False)
+            self.widgets["room_rest"].setEnabled(False)
+            self.lbl_size_line.setText(f"├───  Парилка: {p_len} мм  ───┤")
+            
+        elif idx in (1, 2, 3, 5):  # 🔥 ИСПРАВИЛИ ТУТ (Двухкомнатные бани)
+            # Двухкомнатные бани: разлочена КО, блокируем и обнуляем только Мойку
+            self.widgets["room_rest"].setEnabled(True)
+            self.widgets["room_wash"].setText("0")
+            self.widgets["room_wash"].setEnabled(False)
             self.lbl_size_line.setText(f"├───  Парилка: {p_len} мм  ───┼───  Комната отдыха: {k_len} мм  ───┤")
-        elif k_len == "0" or k_len == "" or k_len == "0000":
-            self.lbl_size_line.setText(f"├───  Парилка: {p_len} мм  ───┼───  Комната отдыха: {m_len} мм  ───┤")
+            
         else:
+            # Трехкомнатные бани (индексы 4, 6, 7): разлочено абсолютно всё
+            self.widgets["room_wash"].setEnabled(True)
+            self.widgets["room_rest"].setEnabled(True)
             self.lbl_size_line.setText(f"├──  П: {p_len} мм  ──┼──  М: {m_len} мм  ──┼──  КО: {k_len} мм  ──┤")
 
     def _connect_color_signals(self):
@@ -398,7 +403,7 @@ class Step3ConfigWidget(QWidget):
             elif key == "torce_modification": data[key] = "base" if idx == 0 else ("canopy" if idx == 1 else "porch")
             else: data[key] = str(idx) 
             
-        lens = ["2000", "3000", "3200", "4000", "4200", "4500", "4700", "5000", "5500", "5700", "6000"]
+        lens = ["2000", "3000", "3500", "4000", "4500", "5000", "5000", "6000"]
         data["base_length"] = lens[self.widgets["base_length"].currentIndex()]
         
         diams = ["2.0", "2.15", "2.3"]
